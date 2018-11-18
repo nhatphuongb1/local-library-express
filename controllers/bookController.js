@@ -1,7 +1,11 @@
 var Book = require('../models/book');
+var Author = require('../models/author');
+var Genre = require('../models/genre');
+var BookInstance = require('../models/bookinstance');
+
 var async = require('async');
+
 exports.index = function(req, res) {
-    
     async.parallel({
         book_count: function(callback) {
             Book.countDocuments({}, callback); // Pass an empty object as match condition to find all documents of this collection
@@ -37,32 +41,33 @@ exports.book_list = function(req, res, next) {
   };
 
 // Display detail page for a specific book.
-exports.book_detail = function(req, res) {
-    // res.send('NOT IMPLEMENTED: Book detail: ' + req.params.id);
+exports.book_detail = function(req, res, next) {
+
     async.parallel({
-        genre: function(callback) {
-            Genre.findById(req.params.id)
+        book: function(callback) {
+
+            Book.findById(req.params.id)
+              .populate('author')
+              .populate('genre')
               .exec(callback);
         },
+        book_instance: function(callback) {
 
-        genre_books: function(callback) {
-          Book.find({ 'genre': req.params.id })
+          BookInstance.find({ 'book': req.params.id })
           .exec(callback);
         },
-
     }, function(err, results) {
         if (err) { return next(err); }
-        if (results.genre==null) { // No results.
-            var err = new Error('Genre not found');
+        if (results.book==null) { // No results.
+            var err = new Error('Book not found');
             err.status = 404;
             return next(err);
         }
-        // Successful, so render
-        res.render('genre_detail', { title: 'Genre Detail', genre: results.genre, genre_books: results.genre_books } );
+        // Successful, so render.
+        res.render('book_detail', { title: 'Title', book: results.book, book_instances: results.book_instance } );
     });
 
 };
-
 // Display book create form on GET.
 exports.book_create_get = function(req, res) {
     res.send('NOT IMPLEMENTED: Book create GET');
